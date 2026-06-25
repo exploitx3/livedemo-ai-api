@@ -71,55 +71,79 @@ const SHOTS = [
     {name: 'cta', scrollY: 0.80, label: 'Call-to-action / Footer'},
 ]
 
+// ─── Singleton browser ───────────────────────────────────────────────────────
+
+let sharedBrowser = null
+
+async function getSharedBrowser() {
+    if (sharedBrowser && sharedBrowser.isConnected()) {
+        return sharedBrowser
+    }
+    console.log('[browser] launching singleton chromium...')
+    sharedBrowser = await chromium.launch({headless: true})
+    sharedBrowser.on('disconnected', () => {
+        console.warn('[browser] chromium disconnected — relaunching immediately...')
+        sharedBrowser = null
+        getSharedBrowser().catch(err => console.error('[browser] relaunch failed:', err))
+    })
+    console.log('[browser] singleton chromium ready')
+    return sharedBrowser
+}
+
+export async function launchSharedBrowser() {
+    await getSharedBrowser()
+}
+
 // ─── Screenshot + Caption pipeline ─────────────────────────────────────────
 
 async function captureAndCaption(url) {
     const tTotal = timer('captureAndCaption total')
 
-    const tBrowser = timer('browser launch')
-    const browser = await chromium.launch({headless: true})
+    const browser = await getSharedBrowser()
     const page = await browser.newPage({viewport: VIEWPORT})
-    tBrowser.end()
 
-    const tNav = timer(`page.goto ${url}`)
-    await page.goto(url, {waitUntil: 'networkidle', timeout: 30_000})
-    tNav.end()
+    try {
+        const tNav = timer(`page.goto ${url}`)
+        await page.goto(url, {waitUntil: 'networkidle', timeout: 30_000})
+        tNav.end()
 
-    const pageHeight = await page.evaluate(() => document.body.scrollHeight)
-    const title = await page.title()
+        const {pageHeight, title, windowMeasures} = await page.evaluate(() => ({
+            pageHeight: document.body.scrollHeight,
+            title: document.title,
+            windowMeasures: {
+                innerWidth: window.innerWidth,
+                innerHeight: window.innerHeight,
+                devicePixelRatio: window.devicePixelRatio,
+            },
+        }))
+        const rawShots = []
 
-    const windowMeasures = await page.evaluate(() => ({
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-        devicePixelRatio: window.devicePixelRatio,
-    }))
-    const rawShots = []
+        for (const shot of SHOTS) {
+            const scrollTo = Math.round(shot.scrollY * Math.max(0, pageHeight - VIEWPORT.height))
+            await page.evaluate((y) => window.scrollTo({top: y, behavior: 'instant'}), scrollTo)
+            await page.waitForTimeout(400)
 
-    for (const shot of SHOTS) {
-        const scrollTo = Math.round(shot.scrollY * Math.max(0, pageHeight - VIEWPORT.height))
-        await page.evaluate((y) => window.scrollTo({top: y, behavior: 'instant'}), scrollTo)
-        await page.waitForTimeout(400)
+            const tShot = timer(`screenshot "${shot.name}"`)
+            const buffer = await page.screenshot({type: 'png'})
+            tShot.end()
+            rawShots.push({...shot, buffer, b64: buffer.toString('base64')})
+        }
 
-        const tShot = timer(`screenshot "${shot.name}"`)
-        const buffer = await page.screenshot({type: 'png'})
-        tShot.end()
-        rawShots.push({...shot, buffer, b64: buffer.toString('base64')})
+        console.log(`[timer] all ${rawShots.length} screenshots done — starting OpenAI captions in parallel`)
+        const tCaptions = timer('all openai captions (parallel)')
+        const captioned = await Promise.all(
+            rawShots.map(async (s) => {
+                const stepText = await generateStepTextWithAI(s.b64, s.label, url, timer, AI_PROVIDER.GEMINI)
+                return {...s, stepText}
+            })
+        )
+        tCaptions.end()
+
+        tTotal.end()
+        return {captioned, title, windowMeasures}
+    } finally {
+        await page.close().catch(() => {})
     }
-
-    await browser.close()
-
-    console.log(`[timer] all ${rawShots.length} screenshots done — starting OpenAI captions in parallel`)
-    const tCaptions = timer('all openai captions (parallel)')
-    const captioned = await Promise.all(
-        rawShots.map(async (s) => {
-            const stepText = await generateStepTextWithAI(s.b64, s.label, url, timer, AI_PROVIDER.GEMINI)
-            return {...s, stepText}
-        })
-    )
-    tCaptions.end()
-
-    tTotal.end()
-    return {captioned, title, windowMeasures}
 }
 
 // ─── S3 upload ───────────────────────────────────────────────────────────────
@@ -551,7 +575,10 @@ async function boot() {
     }
 
     if (ENV.ENABLE_API) {
-        const conn = await setupDB()
+        const [conn] = await Promise.all([
+            setupDB(),
+            launchSharedBrowser(),
+        ])
         Models = getModels(conn)
         console.log('[db] connected')
 
