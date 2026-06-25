@@ -1,4 +1,5 @@
-# Docker images for livedemo-ai-api (base, API, monq worker).
+# Docker images for livedemo-ai-api (monq worker, API).
+# Note: the monq-base image is built and pushed manually — not part of this CI.
 #
 # Secrets (repo Settings → Secrets and variables → Actions):
 #   CI_MINE_USERNAME   - Docker Container Registry username
@@ -17,6 +18,7 @@ env:
   DOCKER_IMAGE_PREFIX: docker.io/livedemo/livedemo-ai-api
 
 jobs:
+# Mirrors: build-story-api-monq-image (automatic on develop)
   build-ai-api-monq-image:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -42,11 +44,11 @@ jobs:
           username: ${{ secrets.CI_MINE_USERNAME }}
           password: ${{ secrets.CI_MINE_PASSWORD }}
 
-      - name: Build and push monq worker image
+      - name: Build and push story-api monq image
         env:
           TAG_SHA: ${{ github.sha }}
         run: |
-          DOCKER_BUILDKIT=1 docker build --ssh default -f ./tools/docker/Dockerfile_monq -t "${{ env.DOCKER_IMAGE_PREFIX }}:monq-latest" .
+          docker build -f ./tools/docker/Dockerfile_monq -t "${{ env.DOCKER_IMAGE_PREFIX }}:monq-latest" .
           docker tag "${{ env.DOCKER_IMAGE_PREFIX }}:monq-latest" "${{ env.DOCKER_IMAGE_PREFIX }}:monq-${TAG_SHA}"
           docker push "${{ env.DOCKER_IMAGE_PREFIX }}:monq-${TAG_SHA}"
           docker push "${{ env.DOCKER_IMAGE_PREFIX }}:monq-latest"
@@ -58,16 +60,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up SSH for private Git deps
-        env:
-          GIT_SSH_KEY: ${{ secrets.GIT_SSH_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$GIT_SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-          eval "$(ssh-agent -s)"
-          ssh-add ~/.ssh/id_rsa
+      - name: Set up SSH agent (private Git deps)
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.GIT_SSH_KEY }}
+
+      - name: Add github.com to known hosts
+        run: ssh-keyscan github.com >> ~/.ssh/known_hosts
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
