@@ -22,7 +22,7 @@ Be specific to what you actually see.
 - 8–14 words total
 - Exactly one '<strong>' wrapping the most memorable 2–4 word outcome
 - Casual, punchy tone — like a product tagline
-- No extra tags, no punctuation after '</span>'
+- No extra tags, no punctuation after '</span>', no """ in beginning or end
 
 ## What to bold
 The unique thing this feature *enables* — the 2–4 words a user would remember.
@@ -30,17 +30,17 @@ The unique thing this feature *enables* — the 2–4 words a user would remembe
 ## Examples
 
 Image → song clip sent as a looping card in chat:
-"""html
+"""
 <span>Share songs as <strong>bite-sized moments</strong>, not "skip to 2:45" messages.</span>
 """
 
 Image → trending feed with a remix button:
-"""html
+"""
 <span>Explore what's trending and instantly <strong>remix the vibe</strong> into your own.</span>
 """
 
 Image → editor with trim, caption field, and multi-platform share icons:
-"""html
+"""
 <span>Create in seconds: trim, caption, and <strong>post anywhere</strong> for maximum reaction.</span>
 """ `
 
