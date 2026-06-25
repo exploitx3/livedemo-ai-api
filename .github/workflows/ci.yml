@@ -17,43 +17,8 @@ env:
   DOCKER_IMAGE_PREFIX: docker.io/livedemo/livedemo-ai-api
 
 jobs:
-  build-ai-api-monq-base-image:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up SSH for Docker build (private Git deps)
-        env:
-          GIT_SSH_KEY: ${{ secrets.GIT_SSH_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$GIT_SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-          eval "$(ssh-agent -s)"
-          ssh-add ~/.ssh/id_rsa
-
-      - name: Log in to Docker Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ secrets.CI_MINE_USERNAME }}
-          password: ${{ secrets.CI_MINE_PASSWORD }}
-
-      - name: Build and push monq base image
-        env:
-          TAG_SHA: ${{ github.sha }}
-        run: |
-          DOCKER_BUILDKIT=1 docker build --ssh default -f ./tools/docker/Dockerfile_monq_base -t "${{ env.DOCKER_IMAGE_PREFIX }}:monq-base-latest" .
-          docker tag "${{ env.DOCKER_IMAGE_PREFIX }}:monq-base-latest" "${{ env.DOCKER_IMAGE_PREFIX }}:monq-base-${TAG_SHA}"
-          docker push "${{ env.DOCKER_IMAGE_PREFIX }}:monq-base-${TAG_SHA}"
-          docker push "${{ env.DOCKER_IMAGE_PREFIX }}:monq-base-latest"
-
   build-ai-api-monq-image:
     if: github.event_name == 'push'
-    needs: build-ai-api-monq-base-image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -85,41 +50,6 @@ jobs:
           docker tag "${{ env.DOCKER_IMAGE_PREFIX }}:monq-latest" "${{ env.DOCKER_IMAGE_PREFIX }}:monq-${TAG_SHA}"
           docker push "${{ env.DOCKER_IMAGE_PREFIX }}:monq-${TAG_SHA}"
           docker push "${{ env.DOCKER_IMAGE_PREFIX }}:monq-latest"
-
-  build-ai-api-image:
-    if: github.event_name == 'push'
-    needs: build-ai-api-monq-base-image
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up SSH for Docker build (private Git deps)
-        env:
-          GIT_SSH_KEY: ${{ secrets.GIT_SSH_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$GIT_SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-          eval "$(ssh-agent -s)"
-          ssh-add ~/.ssh/id_rsa
-
-      - name: Log in to Docker Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ secrets.CI_MINE_USERNAME }}
-          password: ${{ secrets.CI_MINE_PASSWORD }}
-
-      - name: Build and push ai-api image
-        env:
-          TAG_SHA: ${{ github.sha }}
-        run: |
-          DOCKER_BUILDKIT=1 docker build --ssh default -f ./tools/docker/Dockerfile -t "${{ env.DOCKER_IMAGE_PREFIX }}:latest" .
-          docker tag "${{ env.DOCKER_IMAGE_PREFIX }}:latest" "${{ env.DOCKER_IMAGE_PREFIX }}:${TAG_SHA}"
-          docker push "${{ env.DOCKER_IMAGE_PREFIX }}:${TAG_SHA}"
-          docker push "${{ env.DOCKER_IMAGE_PREFIX }}:latest"
 
   build:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop'
