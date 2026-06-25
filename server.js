@@ -71,35 +71,12 @@ const SHOTS = [
     {name: 'cta', scrollY: 0.80, label: 'Call-to-action / Footer'},
 ]
 
-// ─── Singleton browser ───────────────────────────────────────────────────────
-
-let sharedBrowser = null
-
-async function getSharedBrowser() {
-    if (sharedBrowser && sharedBrowser.isConnected()) {
-        return sharedBrowser
-    }
-    console.log('[browser] launching singleton chromium...')
-    sharedBrowser = await chromium.launch({headless: true})
-    sharedBrowser.on('disconnected', () => {
-        console.warn('[browser] chromium disconnected — relaunching immediately...')
-        sharedBrowser = null
-        getSharedBrowser().catch(err => console.error('[browser] relaunch failed:', err))
-    })
-    console.log('[browser] singleton chromium ready')
-    return sharedBrowser
-}
-
-export async function launchSharedBrowser() {
-    await getSharedBrowser()
-}
-
 // ─── Screenshot + Caption pipeline ─────────────────────────────────────────
 
 async function captureAndCaption(url) {
     const tTotal = timer('captureAndCaption total')
 
-    const browser = await getSharedBrowser()
+    const browser = await chromium.launch({headless: true})
     const page = await browser.newPage({viewport: VIEWPORT})
 
     try {
@@ -146,6 +123,7 @@ async function captureAndCaption(url) {
         return {captioned, title, windowMeasures}
     } finally {
         await page.close().catch(() => {})
+        await browser.close().catch(() => {})
     }
 }
 
@@ -577,7 +555,6 @@ async function boot() {
         return
     }
 
-    await launchSharedBrowser()
     if (ENV.ENABLE_API) {
         const [conn] = await Promise.all([
             setupDB()
