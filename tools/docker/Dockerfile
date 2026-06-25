@@ -1,19 +1,35 @@
-# syntax=docker/dockerfile:1
-
 FROM docker.io/livedemo/livedemo-backend:monq-base
 
 ENV CI=true
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
+#RUN apt-get update && apt-get upgrade -y
+#RUN apt-get install -y ffmpeg libstdc++6 libgconf-2-4 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libgbm-dev libnss3-dev libxss-dev
+#
+#RUN apt-get install -y wget gnupg \
+#    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+#    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
+#    && apt-get update \
+#    && apt-get install -y google-chrome-stable fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
+#      --no-install-recommends \
+#    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
 WORKDIR /home/app
 
-COPY package.json pnpm-lock.yaml ./
 COPY . ./
+
+COPY ./package*.json ./
+
+#RUN git submodule init
+#RUN git submodule update
+#RUN cd ./src/modules/react-joyride && npm run build
 
 RUN npm install -g pnpm@10.27.0
 
-RUN --mount=type=ssh pnpm install --frozen-lockfile
+RUN pnpm install
 
-RUN chmod +x start.sh
+#RUN timeout -s 9 30 npx puppeteer browsers install chrome-headless-shell || true
+#RUN npx puppeteer browsers install chrome-headless-shell
 
-ENTRYPOINT ["./start.sh"]
+ENTRYPOINT ./start.sh
