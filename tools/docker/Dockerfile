@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM docker.io/livedemo/livedemo-backend:monq-base-latest
+FROM docker.io/livedemo/livedemo-backend:monq-base
 
 ENV CI=true
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
