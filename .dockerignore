@@ -1,0 +1,12 @@
+**/node_modules
+node_modules
+
+.git
+.gitignore
+dist
+coverage
+*.log
+.DS_Store
+*.env
+!local.env
+package-lock.json

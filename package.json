@@ -1,0 +1,30 @@
+{
+  "name": "livedemo-ai-api",
+  "version": "1.0.0",
+  "description": "AI-powered URL-to-demo service for the LiveDemo platform",
+  "type": "module",
+  "author": "George Apostolov",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@10.27.0",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "consumer": "node consumer.js",
+    "consumer:dev": "node --watch consumer.js",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1074.0",
+    "@aws-sdk/lib-storage": "^3.1074.0",
+    "@google/genai": "^2.9.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.19.2",
+    "mongoose": "^8.4.1",
+    "monq": "git+https://git@github.com/exploitx3/monq.git#release-1.0.1",
+    "openai": "^4.52.0",
+    "playwright": "^1.45.0"
+  }
+}

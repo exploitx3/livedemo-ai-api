@@ -1,0 +1,23 @@
+# package directories
+node_modules/
+jspm_packages/
+
+# Webstorm / IDE
+.idea/
+.idea
+
+# logs and OS
+*.log
+.DS_Store
+
+# env files (local.env and .env.example are committed templates)
+*.env
+!local.env
+!.env.example
+
+# build artifacts
+build/
+.webpack/
+
+# npm lockfile (project uses pnpm)
+package-lock.json
