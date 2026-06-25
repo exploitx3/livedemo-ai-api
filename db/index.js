@@ -215,6 +215,7 @@ const UrlDemoSchema = new mongoose.Schema(
     browserSessionId: { type: String },
     storyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Story' },
     status: { type: String, default: 'processing', enum: ['processing', 'completed'] },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { strict: true, timestamps: true }
 )
