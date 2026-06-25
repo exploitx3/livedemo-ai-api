@@ -18,7 +18,7 @@ env:
   DOCKER_IMAGE_PREFIX: docker.io/livedemo/livedemo-ai-api
 
 jobs:
-# Mirrors: build-story-api-monq-image (automatic on develop)
+# Mirrors: build-livedemo-ai-api-monq-image (automatic on develop)
   build-ai-api-monq-image:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -44,7 +44,7 @@ jobs:
           username: ${{ secrets.CI_MINE_USERNAME }}
           password: ${{ secrets.CI_MINE_PASSWORD }}
 
-      - name: Build and push story-api monq image
+      - name: Build and push livedemo-ai-api monq image
         env:
           TAG_SHA: ${{ github.sha }}
         run: |
