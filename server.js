@@ -104,7 +104,10 @@ async function captureAndCaption(url) {
 
     try {
         const tNav = timer(`page.goto ${url}`)
-        await page.goto(url, {waitUntil: 'networkidle', timeout: 30_000})
+        // 'networkidle' hangs on sites with persistent connections (websockets, ads, analytics).
+        // Use 'load' instead and wait briefly for JS rendering to settle.
+        await page.goto(url, {waitUntil: 'load', timeout: 30_000})
+        await page.waitForTimeout(1_500)
         tNav.end()
 
         const {pageHeight, title, windowMeasures} = await page.evaluate(() => ({
@@ -574,10 +577,10 @@ async function boot() {
         return
     }
 
+    await launchSharedBrowser()
     if (ENV.ENABLE_API) {
         const [conn] = await Promise.all([
-            setupDB(),
-            launchSharedBrowser(),
+            setupDB()
         ])
         Models = getModels(conn)
         console.log('[db] connected')
