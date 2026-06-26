@@ -138,12 +138,13 @@ async function captureAndCaption(url) {
             tShot.end()
             rawShots.push({...shot, buffer, b64: buffer.toString('base64')})
         }
+        let provider = AI_PROVIDER.GEMINI
 
-        console.log(`[timer] all ${rawShots.length} screenshots done — starting OpenAI captions in parallel`)
-        const tCaptions = timer('all openai captions (parallel)')
+        console.log(`[timer] all ${rawShots.length} screenshots done — starting ${provider} captions in parallel`)
+        const tCaptions = timer(`all ${provider} captions (parallel)`)
         const captioned = await Promise.all(
             rawShots.map(async (s) => {
-                const stepText = await generateStepTextWithAI(s.b64, s.label, url, timer, AI_PROVIDER.GEMINI)
+                const stepText = await generateStepTextWithAI(s.b64, s.label, url, timer, provider)
                 return {...s, stepText}
             })
         )

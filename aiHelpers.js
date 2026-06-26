@@ -76,7 +76,7 @@ export const AI_PROVIDER = Object.freeze({
   GEMINI: 'gemini',
 })
 
-export async function generateStepTextWithAI(imageBase64, label, url, timer, provider = AI_PROVIDER.OPENAI) {
+export async function generateStepTextWithAI(imageBase64, label, url, timer, provider = AI_PROVIDER.GEMINI) {
   if (provider === AI_PROVIDER.GEMINI) {
     return generateStepTextWithGemini(imageBase64, label, url, timer)
   }
@@ -84,9 +84,12 @@ export async function generateStepTextWithAI(imageBase64, label, url, timer, pro
 }
 
 export async function generateStepTextWithGemini(imageBase64, label, url, timer) {
-  const t = timer(`gemini caption "${label}"`)
+  const t = timer(`${provider} caption "${label}"`)
   const response = await genai.models.generateContent({
     model: GEMINI_MODEL,
+    config: {
+      thinkingConfig: { thinkingBudget: 0 },
+    },
     contents: [
       {
         role: 'user',
