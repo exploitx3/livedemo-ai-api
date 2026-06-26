@@ -84,7 +84,7 @@ export async function generateStepTextWithAI(imageBase64, label, url, timer, pro
 }
 
 export async function generateStepTextWithGemini(imageBase64, label, url, timer) {
-  const t = timer(`${provider} caption "${label}"`)
+  const t = timer(`gemini caption "${label}"`)
   const response = await genai.models.generateContent({
     model: GEMINI_MODEL,
     config: {
