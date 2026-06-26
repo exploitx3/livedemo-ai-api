@@ -71,12 +71,42 @@ const SHOTS = [
     {name: 'cta', scrollY: 0.80, label: 'Call-to-action / Footer'},
 ]
 
+// ─── Shared persistent browser ───────────────────────────────────────────────
+
+let sharedBrowser = null
+
+async function initBrowser() {
+    if (sharedBrowser) {
+        try {
+            // verify still alive
+            await sharedBrowser.version()
+            return sharedBrowser
+        } catch {
+            console.warn('[browser] shared browser died, relaunching')
+            sharedBrowser = null
+        }
+    }
+    console.log('[browser] launching shared browser')
+    sharedBrowser = await chromium.launch({headless: true})
+    sharedBrowser.on('disconnected', () => {
+        console.warn('[browser] shared browser disconnected, relaunching')
+        sharedBrowser = null
+        initBrowser().catch((err) => console.error('[browser] relaunch failed:', err))
+    })
+    return sharedBrowser
+}
+
+async function getSharedBrowser() {
+    if (!sharedBrowser) await initBrowser()
+    return sharedBrowser
+}
+
 // ─── Screenshot + Caption pipeline ─────────────────────────────────────────
 
 async function captureAndCaption(url) {
     const tTotal = timer('captureAndCaption total')
 
-    const browser = await chromium.launch({headless: true})
+    const browser = await getSharedBrowser()
     const page = await browser.newPage({viewport: VIEWPORT})
 
     try {
@@ -123,7 +153,7 @@ async function captureAndCaption(url) {
         return {captioned, title, windowMeasures}
     } finally {
         await page.close().catch(() => {})
-        await browser.close().catch(() => {})
+        // shared browser stays alive — do NOT close it here
     }
 }
 
@@ -555,6 +585,8 @@ async function boot() {
         return
     }
 
+    await initBrowser()
+
     if (ENV.ENABLE_API) {
         const [conn] = await Promise.all([
             setupDB()
@@ -575,6 +607,15 @@ async function boot() {
         })
     }
 }
+
+async function shutdown(signal) {
+    console.log(`[boot] ${signal} received, closing shared browser`)
+    if (sharedBrowser) await sharedBrowser.close().catch(() => {})
+    process.exit(0)
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))
 
 const isMainModule = process.argv[1] === fileURLToPath(import.meta.url)
 
