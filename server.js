@@ -76,15 +76,15 @@ const SHOTS = [
 async function captureAndCaption(url) {
     const tTotal = timer('captureAndCaption total')
 
-    const browser = await chromium.launch({headless: true})
+    const browser = await chromium.launch({headless: false})
     const page = await browser.newPage({viewport: VIEWPORT})
 
     try {
         const tNav = timer(`page.goto ${url}`)
         // 'networkidle' hangs on sites with persistent connections (websockets, ads, analytics).
         // Use 'load' instead and wait briefly for JS rendering to settle.
-        await page.goto(url, {waitUntil: 'load', timeout: 30_000})
-        await page.waitForTimeout(1_500)
+        await page.goto(url, {waitUntil: 'domcontentloaded', timeout: 60_000})
+        await page.waitForTimeout(2_000)
         tNav.end()
 
         const {pageHeight, title, windowMeasures} = await page.evaluate(() => ({
