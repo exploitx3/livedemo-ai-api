@@ -487,7 +487,7 @@ export async function generateDemo(Models, {url, userId, workspaceId, urlDemoId}
 
     if (userId) {
         const workspaceDoc = await Models.Workspace.findOne(
-            {'members.userId': userId},
+            {'adminUser': userId},
             {_id: 1}
         )
             .sort({createdAt: -1})
