@@ -76,7 +76,7 @@ const SHOTS = [
 async function captureAndCaption(url) {
     const tTotal = timer('captureAndCaption total')
 
-    const browser = await chromium.launch({headless: false})
+    const browser = await chromium.launch({headless: true})
     const page = await browser.newPage({viewport: VIEWPORT})
 
     try {
