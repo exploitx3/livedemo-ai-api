@@ -23,6 +23,7 @@ import ENV from './envServer.js'
 import {getModels, setupDB} from './db/index.js'
 import {AI_PROVIDER, generateStepTextWithAI} from './aiHelpers.js'
 import {startConsumer} from './consumer.js'
+import {createStandardUrlDemoFromStory} from './helpers/cloneStoryForUser.js'
 
 const s3 = new S3Client({
     region: ENV.AWS_REGION,
@@ -479,7 +480,7 @@ export const DEFAULT_WORKSPACE_ID = ENV.DEFAULT_WORKSPACE_ID
  * @param {string|null} [params.urlDemoId]      – if provided, update UrlDemo to completed after save
  * @returns {{ story, screenDocs, captioned }}
  */
-export async function generateDemo(Models, {url, userId, workspaceId, urlDemoId}) {
+export async function generateDemo(Models, {url, userId, workspaceId, urlDemoId, shouldCreateStandard}) {
     const tReq = timer(`generateDemo total url=${url}`)
     console.log(`[generateDemo] url=${url} userId=${userId} workspaceId=${workspaceId} urlDemoId=${urlDemoId}`)
 
@@ -528,6 +529,20 @@ export async function generateDemo(Models, {url, userId, workspaceId, urlDemoId}
             {$set: {status: 'completed', storyId: story._id}}
         )
         console.log(`[generateDemo] updated UrlDemo ${urlDemoId} → completed, storyId=${story._id}`)
+    }
+
+    if (shouldCreateStandard) {
+        const tStandard = timer('cloneStandardUrlDemo phase')
+        // Standard demos are anonymous/shared, so they always live in the default
+        // workspace — never in the requesting user's own workspace.
+        await createStandardUrlDemoFromStory(Models, {
+            url,
+            sourceStoryId: story._id,
+            workspaceId: DEFAULT_WORKSPACE_ID,
+        })
+            .then(() => console.log(`[generateDemo] created standard UrlDemo clone for url=${url}`))
+            .catch((err) => console.error('[generateDemo] failed to create standard UrlDemo clone:', err))
+        tStandard.end()
     }
 
     tReq.end()

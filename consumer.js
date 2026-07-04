@@ -16,7 +16,7 @@ import { setupDB, getModels } from './db/index.js'
 import { generateDemo } from './server.js'
 
 async function processUrlDemo(Models, params, callback) {
-  const { urlDemoId, userId } = params
+  const { urlDemoId, userId, shouldCreateStandard } = params
 
   console.log(`[processUrlDemo] start urlDemoId=${urlDemoId} userId=${userId}`)
 
@@ -36,7 +36,7 @@ async function processUrlDemo(Models, params, callback) {
     }
 
     console.log(`[processUrlDemo] url=${url}`)
-    await generateDemo(Models, { url, userId: userId || null, urlDemoId })
+    await generateDemo(Models, { url, userId: userId || null, urlDemoId, shouldCreateStandard })
     console.log(`[processUrlDemo] done urlDemoId=${urlDemoId}`)
     callback(null, { urlDemoId })
   } catch (err) {

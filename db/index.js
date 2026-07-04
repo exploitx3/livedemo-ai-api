@@ -213,6 +213,7 @@ const UrlDemoSchema = new mongoose.Schema(
   {
     url: { type: String },
     browserSessionId: { type: String },
+    type: { type: String, default: 'standard', enum: ['standard', 'browsed', 'owned'] },
     storyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Story' },
     status: { type: String, default: 'processing', enum: ['processing', 'completed'] },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
