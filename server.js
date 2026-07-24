@@ -14,6 +14,7 @@
  */
 
 import { fileURLToPath } from 'url'
+import { randomUUID } from 'crypto'
 import express from 'express'
 import mongoose from 'mongoose'
 import {chromium} from 'playwright'
@@ -21,9 +22,10 @@ import {S3Client} from '@aws-sdk/client-s3'
 import {Upload} from '@aws-sdk/lib-storage'
 import ENV from './envServer.js'
 import {getModels, setupDB} from './db/index.js'
-import {AI_PROVIDER, generateStepTextWithAI} from './aiHelpers.js'
+import {AI_PROVIDER, elTextToSpeech, generateStepTextWithAI} from './aiHelpers.js'
 import {startConsumer} from './consumer.js'
 import {createStandardUrlDemoFromStory} from './helpers/cloneStoryForUser.js'
+import {pickRandomWallpaper} from './helpers/wallpaperCatalog.js'
 
 const s3 = new S3Client({
     region: ENV.AWS_REGION,
@@ -46,6 +48,60 @@ async function uploadImageToS3(buffer, key) {
     })
     const result = await upload.done()
     return result.Location
+}
+
+async function uploadStepAudio(buffer, audioName) {
+    const upload = new Upload({
+        client: s3,
+        params: {
+            Bucket: ENV.LIVEDEMO_CDN_BUCKET,
+            Key: `step-audios/${audioName}`,
+            Body: buffer,
+            ACL: 'public-read',
+            ContentType: 'audio/mpeg',
+        },
+    })
+    await upload.done()
+}
+
+function htmlToPlainText(html) {
+    return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+async function generateStepAudioForText(stepText, timer) {
+    const voiceId = ENV.ELEVENLABS_DEFAULT_VOICE_ID
+    if (!ENV.ELEVENLABS_API_KEY || !voiceId || !ENV.LIVEDEMO_CDN_URL) {
+        return null
+    }
+
+    const text = htmlToPlainText(stepText)
+    if (!text) {
+        return null
+    }
+
+    const audioFileName = `${randomUUID()}.mp3`
+    try {
+        const tTts = timer(`elevenlabs TTS "${text.slice(0, 40)}..."`)
+        const {buffer, alignment, normalizedAlignment} = await elTextToSpeech(voiceId, text)
+        tTts.end()
+
+        const tUp = timer('S3 upload step audio')
+        await uploadStepAudio(buffer, audioFileName)
+        tUp.end()
+
+        return {
+            audioUrl: `${ENV.LIVEDEMO_CDN_URL}/step-audios/${audioFileName}`,
+            text,
+            voiceType: voiceId,
+            timestamp: {
+                alignment,
+                normalizedAlignment,
+            },
+        }
+    } catch (err) {
+        console.warn('[generateStepAudioForText] failed:', err.message)
+        return null
+    }
 }
 
 const PORT = ENV.PORT
@@ -146,7 +202,8 @@ async function captureAndCaption(url) {
         const captioned = await Promise.all(
             rawShots.map(async (s) => {
                 const stepText = await generateStepTextWithAI(s.b64, s.label, url, timer, provider)
-                return {...s, stepText}
+                const stepAudio = await generateStepAudioForText(stepText, timer)
+                return {...s, stepText, stepAudio}
             })
         )
         tCaptions.end()
@@ -275,6 +332,24 @@ async function saveToMongo(Models, {captioned, title, url, workspaceId, userId, 
     const screenDocs = await Promise.all(
         captionedWithUrls.map(async (shot, idx) => {
             const tScreen = timer(`mongo save screen "${shot.name}"`)
+
+            let stepAudioId = null
+            if (shot.stepAudio) {
+                const audioDoc = await new Models.Audio({
+                    audioUrl: shot.stepAudio.audioUrl,
+                    text: shot.stepAudio.text,
+                    audioType: 'ai',
+                    voiceType: shot.stepAudio.voiceType,
+                    workspaceId: wsId,
+                    timestamp: {
+                        alignment: shot.stepAudio.timestamp.alignment,
+                        normalizedAlignment: shot.stepAudio.timestamp.normalizedAlignment,
+                    },
+                    active: true,
+                }).save()
+                stepAudioId = audioDoc._id
+            }
+
             const screen = await new Models.Screen({
                 name: shot.label,
                 storyId,
@@ -321,7 +396,7 @@ async function saveToMongo(Models, {captioned, title, url, workspaceId, userId, 
                             showHeader: false,
                             showFooter: true,
                         },
-                        stepAudioId: null,
+                        stepAudioId,
                         elementData: {
                             targetHTML: '',
                             targetElementType: 'element',
@@ -442,6 +517,7 @@ async function saveToMongo(Models, {captioned, title, url, workspaceId, userId, 
     const screenIds = [introScreen._id, ...screenDocs.map((s) => s._id), outroScreen._id]
 
     const aspectRatio = `${VIEWPORT.width}/${VIEWPORT.height}`
+    const wallpaper = pickRandomWallpaper()
 
     const tStory = timer('mongo save story')
     const story = await new Models.Story({
@@ -459,6 +535,16 @@ async function saveToMongo(Models, {captioned, title, url, workspaceId, userId, 
         videoStartMs: 0,
         videoEndMs: 0,
         thumbnailImageUrl,
+        custom: {
+            background: {
+                isActive: true,
+                backgroundColor: '#FFFFFF',
+                backgroundBlur: 0,
+                backgroundType: 'wallpaper',
+                wallpaperImage: wallpaper.fullUrl,
+                padding: 28,
+            },
+        },
     }).save()
     tStory.end()
 

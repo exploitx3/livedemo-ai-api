@@ -1,13 +1,18 @@
 import OpenAI from 'openai'
 import { GoogleGenAI } from '@google/genai'
+import { ElevenLabsClient } from 'elevenlabs'
 import ENV from './envServer.js'
 
 export const openai = new OpenAI({ apiKey: ENV.OPENAI_API_KEY })
 
 const genai = new GoogleGenAI({ apiKey: ENV.GEMINI_API_KEY })
 
+const elevenlabs = ENV.ELEVENLABS_API_KEY
+  ? new ElevenLabsClient({ apiKey: ENV.ELEVENLABS_API_KEY })
+  : null
+
 const OPENAI_MODEL = 'gpt-5.5'
-const GEMINI_MODEL = 'gemini-2.5-flash'
+const GEMINI_MODEL = 'gemini-3.5-flash-lite'
 
 const PROMPT = (label, url) => `You are writing step text for a product demo of ${url}.
             
@@ -88,7 +93,8 @@ export async function generateStepTextWithGemini(imageBase64, label, url, timer)
   const response = await genai.models.generateContent({
     model: GEMINI_MODEL,
     config: {
-      thinkingConfig: { thinkingBudget: 0 },
+      // Gemini 3.5+ uses thinkingLevel, not thinkingBudget (0 is invalid).
+      thinkingConfig: { thinkingLevel: 'MINIMAL' },
     },
     contents: [
       {
@@ -109,4 +115,22 @@ export async function generateStepTextWithGemini(imageBase64, label, url, timer)
   })
   t.end()
   return response.text.trim()
+}
+
+export async function elTextToSpeech(voiceId, text) {
+  if (!elevenlabs) {
+    throw new Error('ELEVENLABS_API_KEY is not configured')
+  }
+
+  const response = await elevenlabs.textToSpeech.convertWithTimestamps(voiceId, {
+    text,
+  })
+
+  const buffer = Buffer.from(response.audio_base64, 'base64')
+
+  return {
+    buffer,
+    alignment: response.alignment,
+    normalizedAlignment: response.normalized_alignment,
+  }
 }

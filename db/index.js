@@ -221,6 +221,31 @@ const UrlDemoSchema = new mongoose.Schema(
   { strict: true, timestamps: true }
 )
 
+const AudioSchema = new mongoose.Schema(
+  {
+    audioUrl: { type: String, default: '' },
+    text: { type: String, default: '' },
+    voiceType: { type: String, default: '' },
+    audioType: { type: String, default: 'ai' },
+    timestamp: {
+      alignment: {
+        characters: [{ type: String, default: '' }],
+        character_start_times_seconds: [{ type: Number, default: '' }],
+        character_end_times_seconds: [{ type: Number, default: '' }],
+      },
+      normalized_alignment: {
+        characters: [{ type: String, default: '' }],
+        character_start_times_seconds: [{ type: Number, default: '' }],
+        character_end_times_seconds: [{ type: Number, default: '' }],
+      },
+    },
+    workspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' },
+    active: { type: Boolean, default: true },
+    deletedAt: { type: Date, default: null },
+  },
+  { strict: true, timestamps: { createdAt: true, updatedAt: true } }
+)
+
 // ─── Connection + model init ─────────────────────────────────────────────────
 
 export const setupDB = async () => {
@@ -235,6 +260,7 @@ export const setupDB = async () => {
   conn.model('Story', StorySchema)
   conn.model('Workspace', WorkspaceSchema)
   conn.model('UrlDemo', UrlDemoSchema)
+  conn.model('Audio', AudioSchema)
 
   return conn
 }
@@ -244,4 +270,5 @@ export const getModels = (conn) => ({
   Story: conn.model('Story'),
   Workspace: conn.model('Workspace'),
   UrlDemo: conn.model('UrlDemo'),
+  Audio: conn.model('Audio'),
 })

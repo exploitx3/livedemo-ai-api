@@ -21,6 +21,7 @@
     "@aws-sdk/lib-storage": "^3.1074.0",
     "@google/genai": "^2.9.0",
     "dotenv": "^16.6.1",
+    "elevenlabs": "^1.59.0",
     "express": "^4.19.2",
     "mongoose": "^8.4.1",
     "monq": "git+https://git@github.com/exploitx3/monq.git#release-1.0.1",
