@@ -13,6 +13,9 @@ export default {
   'ELEVENLABS_API_KEY': process.env.ELEVENLABS_API_KEY ? process.env.ELEVENLABS_API_KEY : "",
   'ELEVENLABS_DEFAULT_VOICE_ID': process.env.ELEVENLABS_DEFAULT_VOICE_ID ? process.env.ELEVENLABS_DEFAULT_VOICE_ID : "",
   'LIVEDEMO_CDN_URL': process.env.LIVEDEMO_CDN_URL ? process.env.LIVEDEMO_CDN_URL : "",
+  'DEFAULT_BACKGROUND_MUSIC_PATH': process.env.DEFAULT_BACKGROUND_MUSIC_PATH
+    ? process.env.DEFAULT_BACKGROUND_MUSIC_PATH
+    : 'story-background-audios/future-trip.mp3',
   'AWS_ACCESS_KEY_ID': process.env.AWS_ACCESS_KEY_ID ? process.env.AWS_ACCESS_KEY_ID : "",
   'AWS_SECRET_ACCESS_KEY': process.env.AWS_SECRET_ACCESS_KEY ? process.env.AWS_SECRET_ACCESS_KEY : "",
   'AWS_REGION': process.env.AWS_REGION ? process.env.AWS_REGION : "us-east-1",

@@ -25,6 +25,7 @@ import {getModels, setupDB} from './db/index.js'
 import {AI_PROVIDER, elTextToSpeech, generateStepTextWithAI} from './aiHelpers.js'
 import {startConsumer} from './consumer.js'
 import {createStandardUrlDemoFromStory} from './helpers/cloneStoryForUser.js'
+import {DEFAULT_BACKGROUND_MUSIC} from './helpers/backgroundMusicCatalog.js'
 import {pickRandomWallpaper} from './helpers/wallpaperCatalog.js'
 
 const s3 = new S3Client({
@@ -543,6 +544,11 @@ async function saveToMongo(Models, {captioned, title, url, workspaceId, userId, 
                 backgroundType: 'wallpaper',
                 wallpaperImage: wallpaper.fullUrl,
                 padding: 28,
+            },
+            backgroundMusic: {
+                isActive: true,
+                backgroundMusicUrl: DEFAULT_BACKGROUND_MUSIC.url,
+                backgroundMusicVolume: 7,
             },
         },
     }).save()
