@@ -423,6 +423,13 @@ async function saveToMongo(Models, {captioned, title, url, workspaceId, userId, 
 
     const lastImageUrl = captionedWithUrls[captionedWithUrls.length - 1]?.imageUrl || firstImageUrl
 
+    let productName = 'this product'
+    try {
+        const host = new URL(url).hostname.replace(/^www\./, '')
+        const name = host.split('.')[0]
+        productName = name.charAt(0).toUpperCase() + name.slice(1)
+    } catch {}
+
     const tOutro = timer('mongo save outroScreen')
     const outroScreen = await new Models.Screen({
         name: 'Call-to-action / Footer',
@@ -465,7 +472,7 @@ async function saveToMongo(Models, {captioned, title, url, workspaceId, userId, 
                         buttons: [
                             {
                                 index: 0,
-                                text: 'Record my First LiveDemo',
+                                text: 'Record my First LiveDemo!',
                                 gotoType: 'website',
                                 gotoWebsite: 'https://app.livedemo.ai',
                                 textColor: '#FFFFFF',
@@ -473,20 +480,20 @@ async function saveToMongo(Models, {captioned, title, url, workspaceId, userId, 
                             },
                             {
                                 index: 1,
-                                text: 'Install Free Extension',
+                                text: `Try ${productName}`,
                                 gotoType: 'website',
-                                gotoWebsite: 'https://chromewebstore.google.com/detail/livedemo-ai-product-demos/dnlnaeifccbhdnbppjjgleapjadjklbe?hl=en-US',
+                                gotoWebsite: url,
                                 textColor: '#FFFFFF',
                                 backgroundColor: '#1070ff',
                             },
                             {
                                 index: 2,
-                                text: 'Download Desktop App',
+                                text: 'Install Free Extension',
                                 gotoType: 'website',
-                                gotoWebsite: 'https://livedemo.ai/',
+                                gotoWebsite: 'https://chromewebstore.google.com/detail/livedemo-ai-product-demos/dnlnaeifccbhdnbppjjgleapjadjklbe?hl=en-US',
                                 textColor: '#FFFFFF',
                                 backgroundColor: '#1070ff',
-                            },
+                            }
                         ],
                     },
                     content: '<p>New step</p>',
